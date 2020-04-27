@@ -105,8 +105,8 @@ $mainCatIndex = 1;
 foreach ($toc as $href => $mainCat) {
     $sql[] = sprintf(
         'INSERT INTO ' . $prefix . 'faqcategories ('
-            . 'id, lang, parent_id, name, description, user_id, group_id, active, show_home'
-        . ') VALUES (@main_id, "%s", 0, "%d. %s", "%s", 1, 0, 1, 1);',
+            . 'id, lang, parent_id, name, description, user_id, group_id, active, show_home, image'
+        . ') VALUES (@main_id, "%s", 0, "%d. %s", "%s", 1, 0, 1, 1, "");',
         'de',
         $mainCatIndex++,
         trim($mainCat["headline"]),
@@ -120,8 +120,8 @@ foreach ($toc as $href => $mainCat) {
         $sql[] = 'SET @next_id = (SELECT MAX(id)+1 FROM ' . $prefix . 'faqcategories);';
         $sql[] = sprintf(
             'INSERT INTO ' . $prefix . 'faqcategories ('
-                . 'id, lang, parent_id, name, description, user_id, group_id, active, show_home'
-            . ') VALUES (@next_id, "%s", @main_id, "%d. %s", "%s", 1, 0, 1, 1);',
+                . 'id, lang, parent_id, name, description, user_id, group_id, active, show_home, image'
+            . ') VALUES (@next_id, "%s", @main_id, "%d. %s", "%s", 1, 0, 1, 0, "");',
             'de',
             $subCatIndex++,
             trim($subCat["headline"]),
