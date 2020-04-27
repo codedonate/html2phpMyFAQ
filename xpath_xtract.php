@@ -86,22 +86,25 @@ foreach ($questionResults as $result) {
 }
 unset($index, $content);
 
+// Table Prefix
+$prefix = '';
+
 $sql= [];
 $sql[] = 'USE phpmyfaq;';
 $sql[] = 'BEGIN;';
-$sql[] = 'DELETE FROM faq_faqcategories WHERE id >= 1;';
-$sql[] = 'DELETE FROM faq_faqcategory_group WHERE category_id >= 1;';
-$sql[] = 'DELETE FROM faq_faqcategory_user WHERE category_id >= 1;';
-$sql[] = 'DELETE FROM faq_faqdata WHERE id >= 1;';
-$sql[] = 'DELETE FROM faq_faqdata_group WHERE record_id >= 1;';
-$sql[] = 'DELETE FROM faq_faqdata_user WHERE record_id >= 1;';
-$sql[] = 'DELETE FROM faq_faqcategoryrelations WHERE category_id >= 1;';
-$sql[] = 'DELETE FROM faq_faqchanges WHERE beitrag >= 1;';
-$sql[] = 'SET @main_id = (SELECT COALESCE(MAX(id)+1, 1) FROM faq_faqcategories);';
+$sql[] = 'DELETE FROM ' . $prefix . 'faqcategories WHERE id >= 1;';
+$sql[] = 'DELETE FROM ' . $prefix . 'faqcategory_group WHERE category_id >= 1;';
+$sql[] = 'DELETE FROM ' . $prefix . 'faqcategory_user WHERE category_id >= 1;';
+$sql[] = 'DELETE FROM ' . $prefix . 'faqdata WHERE id >= 1;';
+$sql[] = 'DELETE FROM ' . $prefix . 'faqdata_group WHERE record_id >= 1;';
+$sql[] = 'DELETE FROM ' . $prefix . 'faqdata_user WHERE record_id >= 1;';
+$sql[] = 'DELETE FROM ' . $prefix . 'faqcategoryrelations WHERE category_id >= 1;';
+$sql[] = 'DELETE FROM ' . $prefix . 'faqchanges WHERE beitrag >= 1;';
+$sql[] = 'SET @main_id = (SELECT COALESCE(MAX(id)+1, 1) FROM ' . $prefix . 'faqcategories);';
 $mainCatIndex = 1;
 foreach ($toc as $href => $mainCat) {
     $sql[] = sprintf(
-        'INSERT INTO faq_faqcategories ('
+        'INSERT INTO ' . $prefix . 'faqcategories ('
             . 'id, lang, parent_id, name, description, user_id, group_id, active, show_home'
         . ') VALUES (@main_id, "%s", 0, "%d. %s", "%s", 1, 0, 1, 1);',
         'de',
@@ -109,14 +112,14 @@ foreach ($toc as $href => $mainCat) {
         trim($mainCat["headline"]),
         $href
     );
-    $sql[] = "INSERT INTO faq_faqcategory_group (category_id,group_id) VALUES (@main_id,-1);";
-    $sql[] = "INSERT INTO faq_faqcategory_user (category_id,user_id) VALUES (@main_id,-1);";
+    $sql[] = 'INSERT INTO ' . $prefix . 'faqcategory_group (category_id,group_id) VALUES (@main_id,-1);';
+    $sql[] = 'INSERT INTO ' . $prefix . 'faqcategory_user (category_id,user_id) VALUES (@main_id,-1);';
 
     $subCatIndex = 1;
     foreach ($mainCat['cats'] as $href => $subCat) {
-        $sql[] = 'SET @next_id = (SELECT MAX(id)+1 FROM faq_faqcategories);';
+        $sql[] = 'SET @next_id = (SELECT MAX(id)+1 FROM ' . $prefix . 'faqcategories);';
         $sql[] = sprintf(
-            'INSERT INTO faq_faqcategories ('
+            'INSERT INTO ' . $prefix . 'faqcategories ('
                 . 'id, lang, parent_id, name, description, user_id, group_id, active, show_home'
             . ') VALUES (@next_id, "%s", @main_id, "%d. %s", "%s", 1, 0, 1, 1);',
             'de',
@@ -124,17 +127,17 @@ foreach ($toc as $href => $mainCat) {
             trim($subCat["headline"]),
             $href
         );
-        $sql[] = "INSERT INTO faq_faqcategory_group (category_id,group_id) VALUES (@next_id,-1);";
-        $sql[] = "INSERT INTO faq_faqcategory_user (category_id,user_id) VALUES (@next_id,-1);";
+        $sql[] = 'INSERT INTO ' . $prefix . 'faqcategory_group (category_id,group_id) VALUES (@next_id,-1);';
+        $sql[] = 'INSERT INTO ' . $prefix . 'faqcategory_user (category_id,user_id) VALUES (@next_id,-1);';
     }
 
-    $sql[] = 'SET @main_id = (SELECT MAX(id)+1 FROM faq_faqcategories);';
+    $sql[] = 'SET @main_id = (SELECT MAX(id)+1 FROM ' . $prefix . 'faqcategories);';
 }
 
 foreach ($questions as $question) {
-    $sql[] = 'SET @next_data_id = (SELECT COALESCE(MAX(id)+1, 1) FROM faq_faqdata);';
+    $sql[] = 'SET @next_data_id = (SELECT COALESCE(MAX(id)+1, 1) FROM ' . $prefix . 'faqdata);';
     $sql[] = sprintf(
-        'INSERT INTO faq_faqdata (id, lang, solution_id, revision_id, active, sticky, thema, content, author, email, comment, updated)'
+        'INSERT INTO ' . $prefix . 'faqdata (id, lang, solution_id, revision_id, active, sticky, thema, content, author, email, comment, updated)'
         . ' SELECT @next_data_id, "de", @next_data_id+1000, 0, "yes", 0, "%s", "%s", "%s", "%s", "n", FROM_UNIXTIME(UNIX_TIMESTAMP(), "%s");',
         $question['thema'],
         addslashes($question['content']),
@@ -142,17 +145,17 @@ foreach ($questions as $question) {
         "foo@bar.tld",
         '%Y%m%d%h%i%s'
     );
-    $sql[] = 'INSERT INTO faq_faqdata_group(record_id,group_id) VALUES(@next_data_id,-1);';
-    $sql[] = 'INSERT INTO faq_faqdata_user(record_id,user_id) VALUES(@next_data_id,-1);';
+    $sql[] = 'INSERT INTO ' . $prefix . 'faqdata_group(record_id,group_id) VALUES(@next_data_id,-1);';
+    $sql[] = 'INSERT INTO ' . $prefix . 'faqdata_user(record_id,user_id) VALUES(@next_data_id,-1);';
 
     $sql[] = sprintf(
-        'INSERT INTO faq_faqcategoryrelations (category_id, category_lang, record_id, record_lang)'
-        . ' SELECT (SELECT id FROM faq_faqcategories WHERE description = "%s"), "de", @next_data_id, "de";',
+        'INSERT INTO ' . $prefix . 'faqcategoryrelations (category_id, category_lang, record_id, record_lang)'
+        . ' SELECT (SELECT id FROM ' . $prefix . 'faqcategories WHERE description = "%s"), "de", @next_data_id, "de";',
         $question['cat_href']
     );
 
-    $sql[] = 'INSERT INTO faq_faqchanges (id,beitrag,lang,revision_id,usr,datum,what)'
-        .' SELECT (SELECT COALESCE(MAX(id)+1,1) FROM faq_faqchanges),@next_data_id,"de",0,2,UNIX_TIMESTAMP(),"";';
+    $sql[] = 'INSERT INTO ' . $prefix . 'faqchanges (id,beitrag,lang,revision_id,usr,datum,what)'
+        .' SELECT (SELECT COALESCE(MAX(id)+1,1) FROM ' . $prefix . 'faqchanges),@next_data_id,"de",0,2,UNIX_TIMESTAMP(),"";';
 }
 
 $sql[] = '';
